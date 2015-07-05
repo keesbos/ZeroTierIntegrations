@@ -341,11 +341,18 @@ class ZT1ControllerClient(ZT1Client):
         "    Remove a network from the controller"
     )
 
-    def get_member(self, nwid, address):
+    def get_member(self, nwid, address=None):
         """Get a network member (node)"""
         if address == 'ffffffffff':
             return
         nwid = self.check_network(nwid)
+        if address is None:
+            r = self._get("controller/network/{0}/member".format(nwid))
+            print r
+            print r.text
+            return r.json()
+            return self._get("controller/network/{0}/member".format(
+                nwid)).json()
         address = self.check_address(address)
         return self._get("controller/network/{0}/member/{1}".format(
             nwid, address)).json()
@@ -490,7 +497,7 @@ class ZT1(ZT1Client):
             print "create_network", json.dumps(nw)
         for nwid in self.controller.get_network():
             nw = self.controller.get_network(nwid)
-            for addr in nw["members"]:
+            for addr in self.controller.get_member(nwid):
                 member = self.controller.get_member(nwid, addr)
                 print "create_member", json.dumps(member)
     dump.help = (
@@ -556,7 +563,7 @@ class ZT1(ZT1Client):
             print "404 member not found"
         member["authorized"] = True
         self.controller.update_member(**member)
-    authorize.doc = (
+    authorize.help = (
         "authorize nwid=NetworkID address=NodeAddress\n"
         "    Authorize a member on a network"
     )
@@ -683,7 +690,7 @@ def ctrlcli():
     if hasattr(zt1, cmd):
         cmd_method = getattr(zt1, cmd)
     elif hasattr(ctrl, cmd):
-        cmd_method = getattr(zt1, cmd)
+        cmd_method = getattr(ctrl, cmd)
     else:
         sys.stderr.write("Invalid command {!r}\n".format(cmd))
         sys.exit(1)
